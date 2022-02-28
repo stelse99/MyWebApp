@@ -1,0 +1,46 @@
+version: '3'
+
+services:
+  mysqldb:
+    image: mysql:latest
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=myDB
+
+  tomcat1: &was
+    environment:
+      - JAVA_OPTS=-Dspring.profiles.active=docker -Dfile.encoding=euc-kr
+    depends_on:
+      - mysqldb
+    build:
+      context: .
+      args:
+        conf: /tomcat1/conf
+        warpath: /target/MyWebApp.war
+      dockerfile: /DockerfileTomcat
+    volumes:
+      - /tomcat1/logs/:/usr/local/tomcat/logs/
+
+  tomcat2:
+    <<: *was
+    build:
+      context: .
+      args:
+        conf: /tomcat2/conf
+        warpath: /target/MyWebApp.war
+      dockerfile: /DockerfileTomcat
+    volumes:
+      - /tomcat2/logs/:/usr/local/tomcat/logs/
+
+  nginx:
+    build:
+      context: .
+      dockerfile: /DockerfileNginx
+      args:
+        conf: /nginx/conf
+    ports:
+      - "80:8080"
+    depends_on:
+      - mysqldb
+      - tomcat1
+      - tomcat2
